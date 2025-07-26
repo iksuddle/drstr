@@ -1,72 +1,53 @@
-use std::{iter::Peekable, str::Chars};
+use std::time::Duration;
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Token {
-    Number(u64),
-    Unit(String),
-    Eof,
-}
+use scanner::{Scanner, Token};
 
-struct Scanner<'a> {
-    chars: Peekable<Chars<'a>>,
-}
+mod scanner;
 
-impl<'a> Scanner<'a> {
-    fn new(source: &'a str) -> Self {
-        Scanner {
-            chars: source.chars().peekable(),
-        }
+fn get_unit_duration(unit: &str) -> Duration {
+    match unit.to_lowercase().as_str() {
+        "ms" | "msec" | "milliseconds" => Duration::from_millis(1),
+        "s" | "sec" | "seconds" => Duration::from_secs(1),
+        "m" | "min" | "minutes" => Duration::from_secs(60),
+        "h" | "hr" | "hours" => Duration::from_secs(3600),
+        _ => todo!(),
     }
+}
 
-    fn scan_tokens(&mut self) -> Vec<Token> {
-        let mut tokens = vec![];
+pub fn parse(input: String) -> Result<Duration, String> {
+    let mut scanner = Scanner::new(input.as_str());
+    let tokens = scanner.scan_tokens();
+    let mut tokens = tokens.iter();
 
-        while let Some(c) = self.chars.peek() {
-            tokens.push(match c {
-                ' ' | '\n' | '\t' => {
-                    self.chars.next();
-                    continue;
+    let mut dur = Duration::from_secs(0);
+
+    while let Some(tok) = tokens.next() {
+        match tok {
+            // always expect a number before a unit
+            Token::Unit(unit) => return Err(format!("unexpected unit: {}", unit)),
+            Token::Number(num) => {
+                if let Some(Token::Unit(unit)) = tokens.next() {
+                    let added_duration = *num * get_unit_duration(unit);
+                    dur += added_duration;
+                } else {
+                    return Err("expected unit after number".to_owned());
                 }
-                '0'..='9' => Token::Number(self.scan_number()),
-                _ => Token::Unit(self.scan_unit()),
-            });
-        }
-
-        tokens.push(Token::Eof);
-
-        tokens
-    }
-
-    fn scan_number(&mut self) -> u64 {
-        let mut literal = String::new();
-
-        while let Some(c) = self.chars.peek() {
-            if !c.is_ascii_digit() {
-                break;
             }
-            literal.push(self.chars.next().unwrap());
+            Token::Eof => break,
         }
-
-        literal.parse().unwrap() // todo: don't unwrap
     }
 
-    fn scan_unit(&mut self) -> String {
-        let mut literal = String::new();
-
-        while let Some(c) = self.chars.peek() {
-            if !c.is_ascii_alphabetic() {
-                break; // todo: include location in error msg
-            }
-            literal.push(self.chars.next().unwrap());
-        }
-
-        literal
-    }
+    Ok(dur)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Scanner, Token};
+    use std::time::Duration;
+
+    use crate::{
+        parse,
+        scanner::{Scanner, Token},
+    };
 
     #[test]
     fn test_scanner() {
@@ -104,5 +85,26 @@ mod tests {
                 Token::Eof
             ]
         );
+    }
+
+    #[test]
+    fn test_parsing() {
+        let d = parse("45msec".to_owned());
+        assert_eq!(d, Ok(Duration::from_millis(45)));
+
+        let d = parse("21 minutes 12 seconds".to_owned());
+        assert_eq!(d, Ok(Duration::from_secs(1272)));
+
+        let d = parse("1 hr 2 min 3 sec".to_owned());
+        assert_eq!(d, Ok(Duration::from_secs(3723)));
+
+        let d = parse("1h 2min 3s 62ms".to_owned());
+        assert_eq!(d, Ok(Duration::from_millis(3723062)));
+
+        let d = parse("1h2min3s62ms".to_owned());
+        assert_eq!(d, Ok(Duration::from_millis(3723062)));
+
+        let d = parse("2min 3s62ms".to_owned());
+        assert_eq!(d, Ok(Duration::from_millis(123062)));
     }
 }
