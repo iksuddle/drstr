@@ -14,8 +14,8 @@ fn get_unit_duration(unit: &str) -> Duration {
     }
 }
 
-pub fn parse(input: String) -> Result<Duration, String> {
-    let mut scanner = Scanner::new(input.as_str());
+pub fn parse(input: &str) -> Result<Duration, String> {
+    let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens();
     let mut tokens = tokens.iter();
 
@@ -30,7 +30,7 @@ pub fn parse(input: String) -> Result<Duration, String> {
                     let added_duration = *num * get_unit_duration(unit);
                     dur += added_duration;
                 } else {
-                    return Err("expected unit after number".to_owned());
+                    return Err("expected unit after number".to_string());
                 }
             }
             Token::Eof => break,
@@ -57,7 +57,7 @@ mod tests {
             tokens,
             vec![
                 Token::Number(10),
-                Token::Unit("seconds".to_owned()),
+                Token::Unit("seconds".to_string()),
                 Token::Eof
             ]
         );
@@ -68,9 +68,9 @@ mod tests {
             tokens,
             vec![
                 Token::Number(9),
-                Token::Unit("hr".to_owned()),
+                Token::Unit("hr".to_string()),
                 Token::Number(1),
-                Token::Unit("min".to_owned()),
+                Token::Unit("min".to_string()),
                 Token::Eof
             ]
         );
@@ -81,7 +81,7 @@ mod tests {
             tokens,
             vec![
                 Token::Number(712635),
-                Token::Unit("days".to_owned()),
+                Token::Unit("days".to_string()),
                 Token::Eof
             ]
         );
@@ -89,22 +89,25 @@ mod tests {
 
     #[test]
     fn test_parsing() {
-        let d = parse("45msec".to_owned());
+        let d = parse("45msec");
         assert_eq!(d, Ok(Duration::from_millis(45)));
 
-        let d = parse("21 minutes 12 seconds".to_owned());
+        let d = parse("21 minutes 12 seconds");
         assert_eq!(d, Ok(Duration::from_secs(1272)));
 
-        let d = parse("1 hr 2 min 3 sec".to_owned());
+        let d = parse("1 hr 2 min 3 sec");
         assert_eq!(d, Ok(Duration::from_secs(3723)));
 
-        let d = parse("1h 2min 3s 62ms".to_owned());
+        let d = parse("1h 2min 3s 62ms");
         assert_eq!(d, Ok(Duration::from_millis(3723062)));
 
-        let d = parse("1h2min3s62ms".to_owned());
+        let d = parse("1h2min3s62ms");
         assert_eq!(d, Ok(Duration::from_millis(3723062)));
 
-        let d = parse("2min 3s62ms".to_owned());
+        let d = parse("2min 3s62ms");
         assert_eq!(d, Ok(Duration::from_millis(123062)));
+
+        let d = parse("2min s");
+        assert_eq!(d, Err("unexpected unit: s".to_string()));
     }
 }
