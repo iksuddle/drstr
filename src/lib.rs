@@ -4,13 +4,13 @@ use scanner::{Scanner, Token};
 
 mod scanner;
 
-fn get_unit_duration(unit: &str) -> Duration {
+fn get_unit_duration(unit: &str) -> Result<Duration, String> {
     match unit.to_lowercase().as_str() {
-        "ms" | "msec" | "milliseconds" => Duration::from_millis(1),
-        "s" | "sec" | "seconds" => Duration::from_secs(1),
-        "m" | "min" | "minutes" => Duration::from_secs(60),
-        "h" | "hr" | "hours" => Duration::from_secs(3600),
-        _ => todo!(),
+        "ms" | "msec" | "milliseconds" => Ok(Duration::from_millis(1)),
+        "s" | "sec" | "seconds" => Ok(Duration::from_secs(1)),
+        "m" | "min" | "minutes" => Ok(Duration::from_secs(60)),
+        "h" | "hr" | "hours" => Ok(Duration::from_secs(3600)),
+        u => Err(format!("unexpected unit: {}", u)),
     }
 }
 
@@ -27,7 +27,7 @@ pub fn parse(input: &str) -> Result<Duration, String> {
             Token::Unit(unit) => return Err(format!("unexpected unit: {}", unit)),
             Token::Number(num) => {
                 if let Some(Token::Unit(unit)) = tokens.next() {
-                    let added_duration = *num * get_unit_duration(unit);
+                    let added_duration = *num * get_unit_duration(unit)?;
                     dur += added_duration;
                 } else {
                     return Err("expected unit after number".to_string());
