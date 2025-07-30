@@ -4,7 +4,6 @@ use std::{iter::Peekable, str::Chars};
 pub enum Token {
     Number(u32),
     Unit(String),
-    Eof,
 }
 
 pub struct Scanner<'a> {
@@ -31,8 +30,6 @@ impl<'a> Scanner<'a> {
                 _ => Token::Unit(self.scan_unit()),
             });
         }
-
-        tokens.push(Token::Eof);
 
         tokens
     }

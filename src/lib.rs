@@ -30,10 +30,9 @@ pub fn parse(input: &str) -> Result<Duration, String> {
                     let added_duration = *num * get_unit_duration(unit)?;
                     dur += added_duration;
                 } else {
-                    return Err("expected unit after number".to_string());
+                    return Err("expected a unit (e.g. sec, min, etc) after number".to_string());
                 }
             }
-            Token::Eof => break,
         }
     }
 
@@ -55,11 +54,7 @@ mod tests {
         let tokens = scanner.scan_tokens();
         assert_eq!(
             tokens,
-            vec![
-                Token::Number(10),
-                Token::Unit("seconds".to_string()),
-                Token::Eof
-            ]
+            vec![Token::Number(10), Token::Unit("seconds".to_string()),]
         );
 
         let mut scanner = Scanner::new("9hr1min");
@@ -71,7 +66,6 @@ mod tests {
                 Token::Unit("hr".to_string()),
                 Token::Number(1),
                 Token::Unit("min".to_string()),
-                Token::Eof
             ]
         );
 
@@ -79,11 +73,7 @@ mod tests {
         let tokens = scanner.scan_tokens();
         assert_eq!(
             tokens,
-            vec![
-                Token::Number(712635),
-                Token::Unit("days".to_string()),
-                Token::Eof
-            ]
+            vec![Token::Number(712635), Token::Unit("days".to_string()),]
         );
     }
 
