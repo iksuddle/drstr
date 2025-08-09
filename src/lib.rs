@@ -16,7 +16,7 @@ fn get_unit_duration(unit: &str) -> Result<Duration, String> {
 
 pub fn parse(input: &str) -> Result<Duration, String> {
     let mut scanner = Scanner::new(input);
-    let tokens = scanner.scan_tokens().unwrap();
+    let tokens = scanner.scan_tokens()?;
     let mut tokens = tokens.iter();
 
     let mut dur = Duration::from_secs(0);
@@ -51,29 +51,29 @@ mod tests {
     #[test]
     fn test_scanner() {
         let mut scanner = Scanner::new("10 seconds");
-        let tokens = scanner.scan_tokens().unwrap();
+        let tokens = scanner.scan_tokens();
         assert_eq!(
             tokens,
-            vec![Token::Number(10), Token::Unit("seconds".to_string()),]
+            Ok(vec![Token::Number(10), Token::Unit("seconds".to_string())])
         );
 
         let mut scanner = Scanner::new("9hr1min");
-        let tokens = scanner.scan_tokens().unwrap();
+        let tokens = scanner.scan_tokens();
         assert_eq!(
             tokens,
-            vec![
+            Ok(vec![
                 Token::Number(9),
                 Token::Unit("hr".to_string()),
                 Token::Number(1),
                 Token::Unit("min".to_string()),
-            ]
+            ])
         );
 
         let mut scanner = Scanner::new("712635 days");
-        let tokens = scanner.scan_tokens().unwrap();
+        let tokens = scanner.scan_tokens();
         assert_eq!(
             tokens,
-            vec![Token::Number(712635), Token::Unit("days".to_string()),]
+            Ok(vec![Token::Number(712635), Token::Unit("days".to_string())])
         );
     }
 
@@ -102,5 +102,11 @@ mod tests {
 
         let d = parse("2min s");
         assert_eq!(d, Err("unexpected unit: s".to_string()));
+
+        let d = parse("1 2");
+        assert_eq!(
+            d,
+            Err("expected a unit (e.g. sec, min, etc) after number".to_string())
+        );
     }
 }
