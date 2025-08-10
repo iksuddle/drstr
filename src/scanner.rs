@@ -1,5 +1,13 @@
 use std::{iter::Peekable, num::ParseIntError, str::Chars};
 
+#[derive(thiserror::Error, Debug)]
+pub enum ScannerError {
+    #[error("unexpected character: {0}")]
+    UnexpectedChar(char),
+    #[error("failed to parse int")]
+    ParseIntError(#[from] ParseIntError),
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
     Number(u32),
@@ -17,7 +25,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, String> {
+    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, ScannerError> {
         let mut tokens = vec![];
 
         while let Some(c) = self.chars.peek() {
@@ -28,15 +36,14 @@ impl<'a> Scanner<'a> {
                 }
                 '0'..='9' => Token::Number(self.scan_number()?),
                 'a'..='z' | 'A'..='Z' => Token::Unit(self.scan_unit()),
-                x => return Err(format!("unexpected character: {}", x)),
-                // todo: nice error message
+                x => return Err(ScannerError::UnexpectedChar(*x)),
             });
         }
 
         Ok(tokens)
     }
 
-    fn scan_number(&mut self) -> Result<u32, String> {
+    fn scan_number(&mut self) -> Result<u32, ScannerError> {
         let mut literal = String::new();
 
         while let Some(c) = self.chars.peek() {
@@ -46,7 +53,7 @@ impl<'a> Scanner<'a> {
             literal.push(self.chars.next().unwrap());
         }
 
-        literal.parse().map_err(|e: ParseIntError| e.to_string())
+        Ok(literal.parse()?)
     }
 
     fn scan_unit(&mut self) -> String {
@@ -54,7 +61,7 @@ impl<'a> Scanner<'a> {
 
         while let Some(c) = self.chars.peek() {
             if !c.is_ascii_alphabetic() {
-                break; // todo: include location in error msg
+                break;
             }
             literal.push(self.chars.next().unwrap());
         }
