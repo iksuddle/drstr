@@ -1,47 +1,45 @@
-use std::time::Duration;
-
-use scanner::{Scanner, Token};
-
+pub mod error;
 mod scanner;
 
-fn get_unit_duration(unit: &str) -> Result<Duration, String> {
-    match unit.to_lowercase().as_str() {
+use std::time::Duration;
+
+use error::Error;
+use scanner::{Scanner, Token};
+
+fn get_unit_duration(unit: &str) -> Result<Duration, Error> {
+    let u = unit.to_lowercase();
+    match u.as_str() {
         "ms" | "msec" | "milliseconds" => Ok(Duration::from_millis(1)),
         "s" | "sec" | "seconds" => Ok(Duration::from_secs(1)),
         "m" | "min" | "minutes" => Ok(Duration::from_secs(60)),
         "h" | "hr" | "hours" => Ok(Duration::from_secs(3600)),
-        u => Err(format!("unexpected unit: {}", u)),
+        _ => Err(Error::UnexpectedUnit(u)),
     }
 }
 
-pub fn parse(input: &str) -> Result<Duration, String> {
+pub fn parse(input: &str) -> Result<Duration, Error> {
     let mut scanner = Scanner::new(input);
-    let tokens = match scanner.scan_tokens() {
-        Ok(t) => t,
-        Err(e) => match e {
-            scanner::ScannerError::UnexpectedChar(c) => return Err(format!("unexpected: {c}")),
-            scanner::ScannerError::ParseIntError(parse_int_error) => {
-                return Err(parse_int_error.to_string());
-            }
-        },
-    };
+    let tokens = scanner.scan_tokens()?;
+    parse_tokens(tokens)
+}
 
-    let mut tokens = tokens.iter();
+fn parse_tokens(tokens: Vec<Token>) -> Result<Duration, Error> {
+    let mut tokens = tokens.into_iter();
 
-    let mut dur = Duration::from_secs(0);
-    while let Some(tok) = tokens.next() {
-        match tok {
-            // always expect a number before a unit
-            Token::Unit(unit) => return Err(format!("unexpected unit: {}", unit)),
-            Token::Number(num) => {
-                if let Some(Token::Unit(unit)) = tokens.next() {
-                    let added_duration = *num * get_unit_duration(unit)?;
-                    dur += added_duration;
-                } else {
-                    return Err("expected a unit (e.g. sec, min, etc) after number".to_string());
-                }
-            }
-        }
+    let mut dur = Duration::ZERO;
+    loop {
+        let num = match tokens.next() {
+            None => break,
+            Some(Token::Unit(_)) => return Err(Error::ExpectedNumber),
+            Some(Token::Number(n)) => n,
+        };
+
+        let unit = match tokens.next() {
+            Some(Token::Unit(u)) => u,
+            _ => return Err(Error::ExpectedUnit),
+        };
+
+        dur += num * get_unit_duration(&unit)?;
     }
 
     Ok(dur)
@@ -51,10 +49,7 @@ pub fn parse(input: &str) -> Result<Duration, String> {
 mod tests {
     use std::time::Duration;
 
-    use crate::{
-        parse,
-        scanner::{Scanner, Token},
-    };
+    use crate::{error::Error, parse};
 
     #[test]
     fn test_scanner() {
@@ -108,13 +103,19 @@ mod tests {
         let d = parse("2min 3s62ms");
         assert_eq!(d, Ok(Duration::from_millis(123062)));
 
-        let d = parse("2min s");
-        assert_eq!(d, Err("unexpected unit: s".to_string()));
+        let d = parse("2min 1*2 sec");
+        assert_eq!(d, Err(Error::UnexpectedChar('*')));
+
+        let d = parse("2 min 1 r");
+        assert_eq!(d, Err(Error::UnexpectedUnit("r".to_owned())));
+
+        let d = parse("2.1 min");
+        assert_eq!(d, Err(Error::UnexpectedChar('.')));
 
         let d = parse("1 2");
-        assert_eq!(
-            d,
-            Err("expected a unit (e.g. sec, min, etc) after number".to_string())
-        );
+        assert_eq!(d, Err(Error::ExpectedUnit));
+
+        let d = parse("1 s m");
+        assert_eq!(d, Err(Error::ExpectedNumber));
     }
 }
