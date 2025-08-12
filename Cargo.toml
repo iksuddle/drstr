@@ -1,7 +1,7 @@
 [package]
 name = "drstr"
 version = "0.1.0"
-author = ["Ismail Suddle <iksuddle@gmail.com>"]
+authors = ["Ismail Suddle <iksuddle@gmail.com>"]
 edition = "2024"
 description = "A simple library for parsing human-readable duration strings into `std::time::Duration`."
 license = "MIT"
