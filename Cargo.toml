@@ -1,7 +1,13 @@
 [package]
 name = "drstr"
 version = "0.1.0"
+author = ["Ismail Suddle <iksuddle@gmail.com>"]
 edition = "2024"
+description = "A simple library for parsing human-readable duration strings into `std::time::Duration`."
+license = "MIT"
+repository = "https://github.com/iksuddle/drstr"
+keywords = ["duration", "parse", "parser", "time", "string"]
+categories = ["command-line-utilities", "date-and-time", "parser-implementations", "text-processing"]
 
 [dependencies]
 thiserror = "2.0.12"
