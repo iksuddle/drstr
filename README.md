@@ -17,10 +17,8 @@ Then use the `parse` function:
 use durstr::parse;
 use std::time::Duration;
 
-fn main() {
-    let duration = parse("1h 2min 3s").unwrap();
-    assert_eq!(duration, Duration::from_secs(3723));
-}
+let duration = parse("1h 2min 3s").unwrap();
+assert_eq!(duration, Duration::from_secs(3723));
 ```
 
 ## Supported Units

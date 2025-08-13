@@ -10,4 +10,4 @@ keywords = ["duration", "parse", "string"]
 categories = ["command-line-utilities", "date-and-time", "parser-implementations", "text-processing"]
 
 [dependencies]
-thiserror = "2.0.12"
+thiserror = "2"
