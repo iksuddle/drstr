@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use std::{iter::Peekable, str::Chars, time::Duration};
 
 /// An error that can occur when parsing a duration string.

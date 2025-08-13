@@ -4,7 +4,7 @@ A simple library for parsing human-readable duration strings into `std::time::Du
 
 ## Usage
 
-Add `drstr` to `Cargo.toml`:
+Add `durstr` to `Cargo.toml`:
 
 ```toml
 [dependencies]
