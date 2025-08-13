@@ -1,35 +1,40 @@
 use std::{iter::Peekable, str::Chars, time::Duration};
 
+/// An error that can occur when parsing a duration string.
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum Error {
+    /// An unexpected character was found.
     #[error("unexpected character: {0}")]
     UnexpectedChar(char),
+    /// An unexpected unit was found.
     #[error("unexpected unit: {0}")]
     UnexpectedUnit(String),
+    /// A unit was expected, but not found.
     #[error("expected a unit")]
     ExpectedUnit,
+    /// A number was expected, but not found.
     #[error("expected a number")]
     ExpectedNumber,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Token {
+enum Token {
     Number(u32),
     Unit(String),
 }
 
-pub struct Scanner<'a> {
+struct Scanner<'a> {
     chars: Peekable<Chars<'a>>,
 }
 
 impl<'a> Scanner<'a> {
-    pub fn new(source: &'a str) -> Self {
+    fn new(source: &'a str) -> Self {
         Scanner {
             chars: source.chars().peekable(),
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, Error> {
+    fn scan_tokens(&mut self) -> Result<Vec<Token>, Error> {
         let mut tokens = vec![];
 
         while let Some(c) = self.chars.peek() {
@@ -85,6 +90,23 @@ fn get_unit_duration(unit: &str) -> Result<Duration, Error> {
     }
 }
 
+/// Parses a string into a `Duration`.
+///
+/// The string can contain numbers and units. The supported units are:
+/// - `ms`, `msec`, `milliseconds`
+/// - `s`, `sec`, `seconds`
+/// - `m`, `min`, `minutes`
+/// - `h`, `hr`, `hours`
+///
+/// # Examples
+///
+/// ```
+/// use durstr::parse;
+/// use std::time::Duration;
+///
+/// let d = parse("2 minutes, 12 seconds").unwrap();
+/// assert_eq!(d, Duration::from_secs(132));
+/// ```
 pub fn parse(input: &str) -> Result<Duration, Error> {
     let mut scanner = Scanner::new(input);
     let tokens = scanner.scan_tokens()?;

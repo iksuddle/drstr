@@ -1,4 +1,4 @@
-# `drstr`
+# `durstr`
 
 A simple library for parsing human-readable duration strings into `std::time::Duration`.
 
@@ -8,13 +8,13 @@ Add `drstr` to `Cargo.toml`:
 
 ```toml
 [dependencies]
-drstr = "0.1.0"
+durstr = "0.1.0"
 ```
 
 Then use the `parse` function:
 
 ```rust
-use drstr::parse;
+use durstr::parse;
 use std::time::Duration;
 
 fn main() {
