@@ -33,6 +33,6 @@ assert_eq!(duration, Duration::from_secs(3723));
 ## Future Enhancements
 
 -   Floating point support
--   User-defined custom units (e.g., days, weeks)
+-   User-defined custom units (e.g. days, weeks)
 -   Case sensitivity option
 -   Improved documentation

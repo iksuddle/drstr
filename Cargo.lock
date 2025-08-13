@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "durstr"
+name = "durstr2"
 version = "0.1.0"
 dependencies = [
  "thiserror",
