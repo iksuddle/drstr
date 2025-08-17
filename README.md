@@ -17,22 +17,24 @@ Then use the `parse` function:
 use durstr::parse;
 use std::time::Duration;
 
-let duration = parse("1h 2min 3s").unwrap();
-assert_eq!(duration, Duration::from_secs(3723));
+let dur = parse("12 minutes, 21 seconds");
+assert_eq!(dur, Ok(Duration::from_secs(741)));
+
+let dur = parse("1hr 2min 3sec");
+assert_eq!(dur, Ok(Duration::from_secs(3723)));
 ```
 
 ## Supported Units
 
-| Unit        | Aliases                             |
-|-------------|-------------------------------------|
-| Millisecond | `ms`, `msec`, `milliseconds`        |
-| Second      | `s`, `sec`, `seconds`               |
-| Minute      | `m`, `min`, `minutes`               |
-| Hour        | `h`, `hr`, `hours`                  |
+| Unit        | Aliases                               |
+|-------------|---------------------------------------|
+| Millisecond | `ms`, `msec`/`msecs`, `milliseconds`  |
+| Second      | `s`, `sec`/`secs`, `seconds`          |
+| Minute      | `m`, `min`/`mins`, `minutes`          |
+| Hour        | `h`, `hr`/`hrs`, `hours`              |
 
 ## Future Enhancements
 
 -   Floating point support
--   User-defined custom units (e.g. days, weeks)
+-   User-defined custom units
 -   Case sensitivity option
--   Improved documentation

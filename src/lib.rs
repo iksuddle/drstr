@@ -1,4 +1,30 @@
-#![doc = include_str!("../README.md")]
+/*!
+A simple library for parsing human-readable duration strings into `std::time::Duration`.
+
+## Usage
+
+This library only provides [`parse`]:
+
+```rust
+use durstr::parse;
+use std::time::Duration;
+
+let dur = parse("12 minutes, 21 seconds");
+assert_eq!(dur, Ok(Duration::from_secs(741)));
+
+let dur = parse("1hr 2min 3sec");
+assert_eq!(dur, Ok(Duration::from_secs(3723)));
+```
+
+## Supported Units
+
+| Unit        | Aliases                               |
+|-------------|---------------------------------------|
+| Millisecond | `ms`, `msec`/`msecs`, `milliseconds`  |
+| Second      | `s`, `sec`/`secs`, `seconds`          |
+| Minute      | `m`, `min`/`mins`, `minutes`          |
+| Hour        | `h`, `hr`/`hrs`, `hours`              |
+*/
 
 use std::{iter::Peekable, str::CharIndices, time::Duration};
 
@@ -42,7 +68,7 @@ impl<'a> Scanner<'a> {
         let mut tokens = vec![];
 
         while let Some(&(i, c)) = self.chars.peek() {
-            tokens.push(match c {
+            let token = match c {
                 ' ' | '\n' | '\t' | ',' => {
                     self.chars.next();
                     continue;
@@ -50,7 +76,9 @@ impl<'a> Scanner<'a> {
                 '0'..='9' => Token::Number(self.scan_number(i)),
                 'a'..='z' | 'A'..='Z' => Token::Unit(self.scan_unit(i)),
                 x => return Err(Error::UnexpectedChar(x)),
-            });
+            };
+
+            tokens.push(token);
         }
 
         Ok(tokens)
@@ -84,24 +112,23 @@ impl<'a> Scanner<'a> {
 fn get_unit_duration(unit: &str) -> Result<Duration, Error> {
     let u = unit.to_lowercase();
     match u.as_str() {
-        "ms" | "msec" | "milliseconds" => Ok(Duration::from_millis(1)),
-        "s" | "sec" | "seconds" => Ok(Duration::from_secs(1)),
-        "m" | "min" | "minutes" => Ok(Duration::from_secs(60)),
-        "h" | "hr" | "hours" => Ok(Duration::from_secs(3600)),
+        "ms" | "msec" | "msecs" | "milliseconds" => Ok(Duration::from_millis(1)),
+        "s" | "sec" | "secs" | "seconds" => Ok(Duration::from_secs(1)),
+        "m" | "min" | "mins" | "minutes" => Ok(Duration::from_secs(60)),
+        "h" | "hr" | "hrs" | "hours" => Ok(Duration::from_secs(3600)),
         _ => Err(Error::UnexpectedUnit(u)),
     }
 }
 
-/// Parses a string into a `Duration`.
+/// Parses a string into a `Duration`, ignoring whitespaces and commas.
 ///
-/// The string can contain numbers and units. The supported units are:
-/// - `ms`, `msec`, `milliseconds`
-/// - `s`, `sec`, `seconds`
-/// - `m`, `min`, `minutes`
-/// - `h`, `hr`, `hours`
+/// ## Supported Units
+/// - `ms`, `msec`/`msecs`, `milliseconds`
+/// - `s`, `sec`/`secs`, `seconds`
+/// - `m`, `min`/`mins`, `minutes`
+/// - `h`, `hr`/`hrs`, `hours`
 ///
-/// # Examples
-///
+/// ## Examples
 /// ```
 /// use durstr::parse;
 /// use std::time::Duration;
@@ -146,10 +173,7 @@ mod tests {
     fn test_scanner() {
         let mut scanner = Scanner::new("10 seconds");
         let tokens = scanner.scan_tokens();
-        assert_eq!(
-            tokens,
-            Ok(vec![Token::Number(10), Token::Unit("seconds")])
-        );
+        assert_eq!(tokens, Ok(vec![Token::Number(10), Token::Unit("seconds")]));
 
         let mut scanner = Scanner::new("9hr1min");
         let tokens = scanner.scan_tokens();
@@ -165,10 +189,7 @@ mod tests {
 
         let mut scanner = Scanner::new("712635 days");
         let tokens = scanner.scan_tokens();
-        assert_eq!(
-            tokens,
-            Ok(vec![Token::Number(712635), Token::Unit("days")])
-        );
+        assert_eq!(tokens, Ok(vec![Token::Number(712635), Token::Unit("days")]));
     }
 
     #[test]
@@ -176,13 +197,13 @@ mod tests {
         let d = parse("2 minutes, 12 seconds");
         assert_eq!(d, Ok(Duration::from_secs(120 + 12)));
 
-        let d = parse("45msec");
+        let d = parse("45 msecs");
         assert_eq!(d, Ok(Duration::from_millis(45)));
 
         let d = parse("21 minutes 12 seconds");
         assert_eq!(d, Ok(Duration::from_secs(1272)));
 
-        let d = parse("1 hr 2 min 3 sec");
+        let d = parse("1 hr 2 mins 3 secs");
         assert_eq!(d, Ok(Duration::from_secs(3723)));
 
         let d = parse("1h 2min 3s 62ms");
