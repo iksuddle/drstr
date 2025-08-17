@@ -68,20 +68,25 @@ impl<'a> Scanner<'a> {
         let mut tokens = vec![];
 
         while let Some(&(i, c)) = self.chars.peek() {
-            let token = match c {
-                ' ' | '\n' | '\t' | ',' => {
+            match c {
+                c if self.should_skip(c) => {
                     self.chars.next();
-                    continue;
                 }
-                '0'..='9' => Token::Number(self.scan_number(i)),
-                'a'..='z' | 'A'..='Z' => Token::Unit(self.scan_unit(i)),
-                x => return Err(Error::UnexpectedChar(x)),
+                c if c.is_ascii_digit() => {
+                    tokens.push(Token::Number(self.scan_number(i)));
+                }
+                c if c.is_ascii_alphabetic() => {
+                    tokens.push(Token::Unit(self.scan_unit(i)));
+                }
+                unexpected => return Err(Error::UnexpectedChar(unexpected)),
             };
-
-            tokens.push(token);
         }
 
         Ok(tokens)
+    }
+
+    fn should_skip(&self, c: char) -> bool {
+        c.is_ascii_whitespace() || c == ','
     }
 
     fn scan_number(&mut self, start: usize) -> u32 {
@@ -144,13 +149,12 @@ pub fn parse(input: &str) -> Result<Duration, Error> {
 
 fn parse_tokens(tokens: Vec<Token>) -> Result<Duration, Error> {
     let mut tokens = tokens.into_iter();
-
     let mut dur = Duration::ZERO;
-    loop {
-        let num = match tokens.next() {
-            None => break,
-            Some(Token::Unit(_)) => return Err(Error::ExpectedNumber),
-            Some(Token::Number(n)) => n,
+
+    while let Some(token) = tokens.next() {
+        let num = match token {
+            Token::Number(n) => n,
+            Token::Unit(_) => return Err(Error::ExpectedNumber),
         };
 
         let unit = match tokens.next() {
