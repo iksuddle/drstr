@@ -8,7 +8,7 @@ Add `durstr` to `Cargo.toml`:
 
 ```toml
 [dependencies]
-durstr = "0.1.0"
+durstr = "0.2.0"
 ```
 
 Then use the `parse` function:
