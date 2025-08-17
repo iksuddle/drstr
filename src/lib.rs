@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-use std::{iter::Peekable, str::Chars, time::Duration};
+use std::{iter::Peekable, str::CharIndices, time::Duration};
 
 /// An error that can occur when parsing a duration string.
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -20,64 +20,64 @@ pub enum Error {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum Token {
+enum Token<'a> {
     Number(u32),
-    Unit(String),
+    Unit(&'a str),
 }
 
 struct Scanner<'a> {
-    chars: Peekable<Chars<'a>>,
+    source: &'a str,
+    chars: Peekable<CharIndices<'a>>,
 }
 
 impl<'a> Scanner<'a> {
     fn new(source: &'a str) -> Self {
         Scanner {
-            chars: source.chars().peekable(),
+            source,
+            chars: source.char_indices().peekable(),
         }
     }
 
-    fn scan_tokens(&mut self) -> Result<Vec<Token>, Error> {
+    fn scan_tokens(&mut self) -> Result<Vec<Token<'_>>, Error> {
         let mut tokens = vec![];
 
-        while let Some(c) = self.chars.peek() {
+        while let Some(&(i, c)) = self.chars.peek() {
             tokens.push(match c {
                 ' ' | '\n' | '\t' | ',' => {
                     self.chars.next();
                     continue;
                 }
-                '0'..='9' => Token::Number(self.scan_number()),
-                'a'..='z' | 'A'..='Z' => Token::Unit(self.scan_unit()),
-                x => return Err(Error::UnexpectedChar(*x)),
+                '0'..='9' => Token::Number(self.scan_number(i)),
+                'a'..='z' | 'A'..='Z' => Token::Unit(self.scan_unit(i)),
+                x => return Err(Error::UnexpectedChar(x)),
             });
         }
 
         Ok(tokens)
     }
 
-    fn scan_number(&mut self) -> u32 {
-        let mut literal = String::new();
-
-        while let Some(c) = self.chars.peek() {
+    fn scan_number(&mut self, start: usize) -> u32 {
+        let mut end = start;
+        while let Some((_, c)) = self.chars.peek() {
             if !c.is_ascii_digit() {
                 break;
             }
-            literal.push(self.chars.next().unwrap());
+            end = self.chars.next().unwrap().0;
         }
 
-        literal.parse().unwrap()
+        self.source[start..=end].parse().unwrap()
     }
 
-    fn scan_unit(&mut self) -> String {
-        let mut literal = String::new();
-
-        while let Some(c) = self.chars.peek() {
+    fn scan_unit(&mut self, start: usize) -> &'a str {
+        let mut end = start;
+        while let Some((_, c)) = self.chars.peek() {
             if !c.is_ascii_alphabetic() {
                 break;
             }
-            literal.push(self.chars.next().unwrap());
+            end = self.chars.next().unwrap().0;
         }
 
-        literal
+        &self.source[start..=end]
     }
 }
 
@@ -131,7 +131,7 @@ fn parse_tokens(tokens: Vec<Token>) -> Result<Duration, Error> {
             _ => return Err(Error::ExpectedUnit),
         };
 
-        dur += num * get_unit_duration(&unit)?;
+        dur += num * get_unit_duration(unit)?;
     }
 
     Ok(dur)
@@ -148,7 +148,7 @@ mod tests {
         let tokens = scanner.scan_tokens();
         assert_eq!(
             tokens,
-            Ok(vec![Token::Number(10), Token::Unit("seconds".to_string())])
+            Ok(vec![Token::Number(10), Token::Unit("seconds")])
         );
 
         let mut scanner = Scanner::new("9hr1min");
@@ -157,9 +157,9 @@ mod tests {
             tokens,
             Ok(vec![
                 Token::Number(9),
-                Token::Unit("hr".to_string()),
+                Token::Unit("hr"),
                 Token::Number(1),
-                Token::Unit("min".to_string()),
+                Token::Unit("min"),
             ])
         );
 
@@ -167,7 +167,7 @@ mod tests {
         let tokens = scanner.scan_tokens();
         assert_eq!(
             tokens,
-            Ok(vec![Token::Number(712635), Token::Unit("days".to_string())])
+            Ok(vec![Token::Number(712635), Token::Unit("days")])
         );
     }
 
