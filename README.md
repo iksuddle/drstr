@@ -14,7 +14,9 @@ Add `durstr` to `Cargo.toml`:
 durstr = "0.2.0"
 ```
 
-Then use the `parse` function:
+This library provides a `parse` function for quick and easy parsing, and a `Parser` struct for more control over parsing behavior.
+
+The `parse` function is a convenience wrapper around a default `Parser`.
 
 ```rust
 use durstr::parse;
@@ -25,6 +27,17 @@ assert_eq!(dur, Ok(Duration::from_secs(741)));
 
 let dur = parse("1hr 2min 3sec");
 assert_eq!(dur, Ok(Duration::from_secs(3723)));
+```
+
+For more control, you can use the `Parser` struct directly. For example, to parse with case-insensitivity:
+
+```rust
+use durstr::{Parser, ParserOptions};
+use std::time::Duration;
+
+let parser = Parser::new(ParserOptions { ignore_case: true });
+let dur = parser.parse("1 MINUTE, 2 SECONDS");
+assert_eq!(dur, Ok(Duration::from_secs(62)));
 ```
 
 ## Supported Units
@@ -40,4 +53,3 @@ assert_eq!(dur, Ok(Duration::from_secs(3723)));
 
 -   Floating point support
 -   User-defined custom units
--   Case sensitivity option
