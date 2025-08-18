@@ -114,17 +114,6 @@ impl<'a> Scanner<'a> {
     }
 }
 
-fn get_unit_duration(unit: &str) -> Result<Duration, Error> {
-    let u = unit.to_lowercase();
-    match u.as_str() {
-        "ms" | "msec" | "msecs" | "milliseconds" => Ok(Duration::from_millis(1)),
-        "s" | "sec" | "secs" | "seconds" => Ok(Duration::from_secs(1)),
-        "m" | "min" | "mins" | "minutes" => Ok(Duration::from_secs(60)),
-        "h" | "hr" | "hrs" | "hours" => Ok(Duration::from_secs(3600)),
-        _ => Err(Error::UnexpectedUnit(u)),
-    }
-}
-
 /// Parses a string into a `Duration`, ignoring whitespaces and commas.
 ///
 /// ## Supported Units
@@ -166,6 +155,17 @@ fn parse_tokens(tokens: Vec<Token>) -> Result<Duration, Error> {
     }
 
     Ok(dur)
+}
+
+fn get_unit_duration(unit: &str) -> Result<Duration, Error> {
+    let unit = unit.to_lowercase();
+    match unit.as_str() {
+        "ms" | "msec" | "msecs" | "milliseconds" => Ok(Duration::from_millis(1)),
+        "s" | "sec" | "secs" | "seconds" => Ok(Duration::from_secs(1)),
+        "m" | "min" | "mins" | "minutes" => Ok(Duration::from_secs(60)),
+        "h" | "hr" | "hrs" | "hours" => Ok(Duration::from_secs(3600)),
+        _ => Err(Error::UnexpectedUnit(unit)),
+    }
 }
 
 #[cfg(test)]
