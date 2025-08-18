@@ -26,7 +26,7 @@ assert_eq!(dur, Ok(Duration::from_secs(3723)));
 | Hour        | `h`, `hr`/`hrs`, `hours`              |
 */
 
-use std::{iter::Peekable, str::CharIndices, time::Duration};
+use std::{borrow::Cow, iter::Peekable, str::CharIndices, time::Duration};
 
 /// An error that can occur when parsing a duration string.
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -114,6 +114,64 @@ impl<'a> Scanner<'a> {
     }
 }
 
+#[derive(Default)]
+pub struct ParserOptions {
+    ignore_case: bool,
+}
+
+#[derive(Default)]
+pub struct Parser {
+    options: ParserOptions,
+}
+
+impl Parser {
+    pub fn new(options: ParserOptions) -> Self {
+        Parser { options }
+    }
+
+    pub fn parse(&self, input: &str) -> Result<Duration, Error> {
+        let tokens = Scanner::new(input).scan_tokens()?;
+        self.parse_tokens(tokens)
+    }
+
+    fn parse_tokens(&self, tokens: Vec<Token>) -> Result<Duration, Error> {
+        let mut tokens = tokens.into_iter();
+        let mut dur = Duration::ZERO;
+
+        while let Some(token) = tokens.next() {
+            let num = match token {
+                Token::Number(n) => n,
+                Token::Unit(_) => return Err(Error::ExpectedNumber),
+            };
+
+            let unit = match tokens.next() {
+                Some(Token::Unit(u)) => u,
+                _ => return Err(Error::ExpectedUnit),
+            };
+
+            dur += num * self.get_unit_duration(unit)?;
+        }
+
+        Ok(dur)
+    }
+
+    fn get_unit_duration(&self, unit: &str) -> Result<Duration, Error> {
+        let unit = if self.options.ignore_case {
+            Cow::Owned(unit.to_lowercase())
+        } else {
+            Cow::Borrowed(unit)
+        };
+
+        match unit.as_ref() {
+            "ms" | "msec" | "msecs" | "milliseconds" => Ok(Duration::from_millis(1)),
+            "s" | "sec" | "secs" | "seconds" => Ok(Duration::from_secs(1)),
+            "m" | "min" | "mins" | "minutes" => Ok(Duration::from_secs(60)),
+            "h" | "hr" | "hrs" | "hours" => Ok(Duration::from_secs(3600)),
+            _ => Err(Error::UnexpectedUnit(unit.into_owned())),
+        }
+    }
+}
+
 /// Parses a string into a `Duration`, ignoring whitespaces and commas.
 ///
 /// ## Supported Units
@@ -130,46 +188,16 @@ impl<'a> Scanner<'a> {
 /// let d = parse("2 minutes, 12 seconds").unwrap();
 /// assert_eq!(d, Duration::from_secs(132));
 /// ```
+///
+/// This function uses a default [`Parser`].
+/// Construct a new [`Parser`] to customize behavior (e.g. case sensitivity).
 pub fn parse(input: &str) -> Result<Duration, Error> {
-    let tokens = Scanner::new(input).scan_tokens()?;
-    parse_tokens(tokens)
-}
-
-fn parse_tokens(tokens: Vec<Token>) -> Result<Duration, Error> {
-    let mut tokens = tokens.into_iter();
-    let mut dur = Duration::ZERO;
-
-    while let Some(token) = tokens.next() {
-        let num = match token {
-            Token::Number(n) => n,
-            Token::Unit(_) => return Err(Error::ExpectedNumber),
-        };
-
-        let unit = match tokens.next() {
-            Some(Token::Unit(u)) => u,
-            _ => return Err(Error::ExpectedUnit),
-        };
-
-        dur += num * get_unit_duration(unit)?;
-    }
-
-    Ok(dur)
-}
-
-fn get_unit_duration(unit: &str) -> Result<Duration, Error> {
-    let unit = unit.to_lowercase();
-    match unit.as_str() {
-        "ms" | "msec" | "msecs" | "milliseconds" => Ok(Duration::from_millis(1)),
-        "s" | "sec" | "secs" | "seconds" => Ok(Duration::from_secs(1)),
-        "m" | "min" | "mins" | "minutes" => Ok(Duration::from_secs(60)),
-        "h" | "hr" | "hrs" | "hours" => Ok(Duration::from_secs(3600)),
-        _ => Err(Error::UnexpectedUnit(unit)),
-    }
+    Parser::default().parse(input)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Error, Scanner, Token, parse};
+    use crate::{Error, Parser, ParserOptions, Scanner, Token, parse};
     use std::time::Duration;
 
     #[test]
@@ -232,5 +260,33 @@ mod tests {
 
         let d = parse("1 s m");
         assert_eq!(d, Err(Error::ExpectedNumber));
+    }
+
+    #[test]
+    fn test_parsing_case_sensitivity() {
+        let parser = Parser::new(ParserOptions { ignore_case: false });
+
+        let d = parser.parse("1 min 2 sec");
+        assert_eq!(d, Ok(Duration::from_secs(62)));
+
+        let d = parser.parse("1 Min 2 sec");
+        assert_eq!(d, Err(Error::UnexpectedUnit("Min".to_owned())));
+
+        let d = parser.parse("1 min 2 seC");
+        assert_eq!(d, Err(Error::UnexpectedUnit("seC".to_owned())));
+
+        let parser = Parser::new(ParserOptions { ignore_case: true });
+
+        let d = parser.parse("1 min 2 sec");
+        assert_eq!(d, Ok(Duration::from_secs(62)));
+
+        let d = parser.parse("1 Min 2 sec");
+        assert_eq!(d, Ok(Duration::from_secs(62)));
+
+        let d = parser.parse("1 min 2 seC");
+        assert_eq!(d, Ok(Duration::from_secs(62)));
+
+        let d = parser.parse("1 MIN 2 SEC");
+        assert_eq!(d, Ok(Duration::from_secs(62)));
     }
 }
