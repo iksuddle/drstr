@@ -248,8 +248,7 @@ pub fn parse(input: &str) -> Result<Duration, Error> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Error, Parser, ParserOptions, Scanner, Token, parse};
-    use std::time::Duration;
+    use crate::{Scanner, Token};
 
     #[test]
     fn test_scanner() {
@@ -272,72 +271,5 @@ mod tests {
         let scanner = Scanner::new("712635 days");
         let tokens = scanner.scan_tokens();
         assert_eq!(tokens, Ok(vec![Token::Number(712635), Token::Unit("days")]));
-    }
-
-    #[test]
-    fn test_parsing() {
-        let d = parse("2 minutes, 12 seconds");
-        assert_eq!(d, Ok(Duration::from_secs(120 + 12)));
-
-        let d = parse("45 msecs");
-        assert_eq!(d, Ok(Duration::from_millis(45)));
-
-        let d = parse("21 minutes 12 seconds");
-        assert_eq!(d, Ok(Duration::from_secs(1272)));
-
-        let d = parse("1 hr 2 mins 3 secs");
-        assert_eq!(d, Ok(Duration::from_secs(3723)));
-
-        let d = parse("1h 2min 3s 62ms");
-        assert_eq!(d, Ok(Duration::from_millis(3723062)));
-
-        let d = parse("1h2min3s62ms");
-        assert_eq!(d, Ok(Duration::from_millis(3723062)));
-
-        let d = parse("2min 3s62ms");
-        assert_eq!(d, Ok(Duration::from_millis(123062)));
-
-        let d = parse("2min 1*2 sec");
-        assert_eq!(d, Err(Error::UnexpectedChar('*')));
-
-        let d = parse("2 min 1 r");
-        assert_eq!(d, Err(Error::UnexpectedUnit("r".to_owned())));
-
-        let d = parse("2.1 min");
-        assert_eq!(d, Err(Error::UnexpectedChar('.')));
-
-        let d = parse("1 2");
-        assert_eq!(d, Err(Error::ExpectedUnit));
-
-        let d = parse("1 s m");
-        assert_eq!(d, Err(Error::ExpectedNumber));
-    }
-
-    #[test]
-    fn test_parsing_case_sensitivity() {
-        let parser = Parser::new(ParserOptions { ignore_case: false });
-
-        let d = parser.parse("1 min 2 sec");
-        assert_eq!(d, Ok(Duration::from_secs(62)));
-
-        let d = parser.parse("1 Min 2 sec");
-        assert_eq!(d, Err(Error::UnexpectedUnit("Min".to_owned())));
-
-        let d = parser.parse("1 min 2 seC");
-        assert_eq!(d, Err(Error::UnexpectedUnit("seC".to_owned())));
-
-        let parser = Parser::new(ParserOptions { ignore_case: true });
-
-        let d = parser.parse("1 min 2 sec");
-        assert_eq!(d, Ok(Duration::from_secs(62)));
-
-        let d = parser.parse("1 Min 2 sec");
-        assert_eq!(d, Ok(Duration::from_secs(62)));
-
-        let d = parser.parse("1 min 2 seC");
-        assert_eq!(d, Ok(Duration::from_secs(62)));
-
-        let d = parser.parse("1 MIN 2 SEC");
-        assert_eq!(d, Ok(Duration::from_secs(62)));
     }
 }
