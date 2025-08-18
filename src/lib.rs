@@ -64,7 +64,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn scan_tokens(&mut self) -> Result<Vec<Token<'_>>, Error> {
+    fn scan_tokens(mut self) -> Result<Vec<Token<'a>>, Error> {
         let mut tokens = vec![];
 
         while let Some(&(i, c)) = self.chars.peek() {
@@ -131,8 +131,7 @@ impl<'a> Scanner<'a> {
 /// assert_eq!(d, Duration::from_secs(132));
 /// ```
 pub fn parse(input: &str) -> Result<Duration, Error> {
-    let mut scanner = Scanner::new(input);
-    let tokens = scanner.scan_tokens()?;
+    let tokens = Scanner::new(input).scan_tokens()?;
     parse_tokens(tokens)
 }
 
@@ -175,11 +174,11 @@ mod tests {
 
     #[test]
     fn test_scanner() {
-        let mut scanner = Scanner::new("10 seconds");
+        let scanner = Scanner::new("10 seconds");
         let tokens = scanner.scan_tokens();
         assert_eq!(tokens, Ok(vec![Token::Number(10), Token::Unit("seconds")]));
 
-        let mut scanner = Scanner::new("9hr1min");
+        let scanner = Scanner::new("9hr1min");
         let tokens = scanner.scan_tokens();
         assert_eq!(
             tokens,
@@ -191,7 +190,7 @@ mod tests {
             ])
         );
 
-        let mut scanner = Scanner::new("712635 days");
+        let scanner = Scanner::new("712635 days");
         let tokens = scanner.scan_tokens();
         assert_eq!(tokens, Ok(vec![Token::Number(712635), Token::Unit("days")]));
     }
