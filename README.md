@@ -42,12 +42,12 @@ assert_eq!(dur, Ok(Duration::from_secs(62)));
 
 ## Supported Units
 
-| Unit        | Aliases                               |
-|-------------|---------------------------------------|
-| Millisecond | `ms`, `msec`/`msecs`, `milliseconds`  |
-| Second      | `s`, `sec`/`secs`, `seconds`          |
-| Minute      | `m`, `min`/`mins`, `minutes`          |
-| Hour        | `h`, `hr`/`hrs`, `hours`              |
+| Unit        | Aliases                            |
+|-------------|------------------------------------|
+| Millisecond | `ms`, `msec(s)`, `millisecond(s)`  |
+| Second      | `s`, `sec(s)`, `second(s)`         |
+| Minute      | `m`, `min(s)`, `minute(s)`         |
+| Hour        | `h`, `hr(s)`, `hour(s)`            |
 
 ## Future Enhancements
 
