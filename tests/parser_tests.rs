@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use durstr::{Error, Parser, ParserOptions, parse};
+use durstr::{Error, Parser, ParserOptions, ParserUnits, parse};
 
 #[test]
 fn test_parsing() {
@@ -70,4 +70,20 @@ fn test_parsing_case_sensitivity() {
 
     let d = parser.parse("1 MIN 2 SEC");
     assert_eq!(d, Ok(Duration::from_secs(62)));
+}
+
+#[test]
+fn test_parsing_custom_units() {
+    let mut units = ParserUnits::default();
+    units.add_unit("day", Duration::from_secs(3600) * 24);
+    let parser = Parser::new(ParserOptions {
+        units,
+        ..Default::default()
+    });
+
+    let d = parser.parse("1 day");
+    assert_eq!(d, Ok(Duration::from_secs(3600) * 24));
+
+    let d = parser.parse("4 day");
+    assert_eq!(d, Ok(Duration::from_secs(3600) * 24 * 4));
 }
