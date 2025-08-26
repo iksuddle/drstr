@@ -29,12 +29,14 @@ For more control, you can use the [`Parser`] struct directly. For example, to pa
 use durstr::{Parser, ParserOptions};
 use std::time::Duration;
 
-let parser = Parser::new(ParserOptions { ignore_case: true });
+let options = ParserOptions { ignore_case: true, ..Default::default() };
+let parser = Parser::new(options);
+
 let dur = parser.parse("1 MINUTE, 2 SECONDS");
 assert_eq!(dur, Ok(Duration::from_secs(62)));
 ```
 
-## Supported Units
+## Default Units
 
 | Unit        | Aliases                            |
 |-------------|------------------------------------|
@@ -44,7 +46,7 @@ assert_eq!(dur, Ok(Duration::from_secs(62)));
 | Hour        | `h`, `hr(s)`, `hour(s)`            |
 */
 
-use std::{collections::HashMap, iter::Peekable, str::CharIndices, time::Duration};
+use std::{borrow::Cow, collections::HashMap, iter::Peekable, str::CharIndices, time::Duration};
 
 /// An error that can occur when parsing a duration string.
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -132,21 +134,30 @@ impl<'a> Scanner<'a> {
     }
 }
 
-/// used to customize the parser's units and their values
+/// Used to customize the parser's units and their values.
 pub struct ParserUnits {
-    pub values: HashMap<&'static str, Duration>,
+    values: HashMap<&'static str, Duration>,
 }
 
 impl ParserUnits {
-    /// use for entirely custom units (empty map)
-    fn new() -> Self {
+    /// Returns a ParserUnits with no default units (empty map).
+    pub fn new() -> Self {
         ParserUnits {
             values: HashMap::new(),
         }
     }
 
-    /// insert/update a unit and its value
-    fn add_unit(&mut self, k: &'static str, v: Duration) {
+    /// Insert/update a unit and its value.
+    ///
+    /// For example, to add a unit 'day' with a duration of 24 hours:
+    /// ```rust
+    /// use durstr::ParserUnits;
+    /// use std::time::Duration;
+    ///
+    /// let mut units = ParserUnits::default();
+    /// units.add_unit("day", Duration::from_secs(3600) * 24);
+    /// ```
+    pub fn add_unit(&mut self, k: &'static str, v: Duration) {
         self.values.insert(k, v);
     }
 
@@ -156,7 +167,13 @@ impl ParserUnits {
 }
 
 impl Default for ParserUnits {
-    /// provides the default set of units for parsing durations
+    /// Provides the default set of units for parsing durations.
+    ///
+    /// Default Units
+    /// - `ms`, `msec(s)`, `millisecond(s)`
+    /// - `s`, `sec(s)`, `second(s)`
+    /// - `m`, `min(s)`, `minute(s)`
+    /// - `h`, `hr(s)`, `hour(s)`
     fn default() -> Self {
         let mut parser_units = ParserUnits::new();
 
@@ -204,7 +221,7 @@ impl Parser {
 
     /// Parses a string into a `Duration`, ignoring whitespaces and commas.
     ///
-    /// ## Supported Units
+    /// Default Units
     /// - `ms`, `msec(s)`, `millisecond(s)`
     /// - `s`, `sec(s)`, `second(s)`
     /// - `m`, `min(s)`, `minute(s)`
@@ -215,8 +232,8 @@ impl Parser {
     /// use durstr::{Parser, ParserOptions};
     /// use std::time::Duration;
     ///
-    /// let parser = Parser::new(ParserOptions { ignore_case: true });
-    /// let dur = parser.parse("1 MINUTE, 2 SECONDS");
+    /// let parser = Parser::default();
+    /// let dur = parser.parse("1 minute, 2 seconds");
     /// assert_eq!(dur, Ok(Duration::from_secs(62)));
     /// ```
     pub fn parse(&self, input: &str) -> Result<Duration, Error> {
@@ -246,9 +263,15 @@ impl Parser {
     }
 
     fn get_unit_duration(&self, unit: &str) -> Result<Duration, Error> {
-        match self.options.units.get_duration(unit) {
+        let unit = if self.options.ignore_case {
+            Cow::Owned(unit.to_lowercase())
+        } else {
+            Cow::Borrowed(unit)
+        };
+
+        match self.options.units.get_duration(&unit) {
             Some(d) => Ok(*d),
-            None => Err(Error::UnexpectedUnit(unit.to_owned())),
+            None => Err(Error::UnexpectedUnit(unit.into_owned())),
         }
     }
 
