@@ -44,7 +44,7 @@ assert_eq!(dur, Ok(Duration::from_secs(62)));
 | Hour        | `h`, `hr(s)`, `hour(s)`            |
 */
 
-use std::{borrow::Cow, iter::Peekable, str::CharIndices, time::Duration};
+use std::{collections::HashMap, iter::Peekable, str::CharIndices, time::Duration};
 
 /// An error that can occur when parsing a duration string.
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -132,6 +132,51 @@ impl<'a> Scanner<'a> {
     }
 }
 
+/// used to customize the parser's units and their values
+pub struct ParserUnits {
+    pub values: HashMap<&'static str, Duration>,
+}
+
+impl ParserUnits {
+    /// use for entirely custom units (empty map)
+    fn new() -> Self {
+        ParserUnits {
+            values: HashMap::new(),
+        }
+    }
+
+    /// insert/update a unit and its value
+    fn add_unit(&mut self, k: &'static str, v: Duration) {
+        self.values.insert(k, v);
+    }
+
+    fn get_duration(&self, k: &str) -> Option<&Duration> {
+        self.values.get(k)
+    }
+}
+
+impl Default for ParserUnits {
+    /// provides the default set of units for parsing durations
+    fn default() -> Self {
+        let mut parser_units = ParserUnits::new();
+
+        for u in ["h", "hr", "hrs", "hour", "hours"] {
+            parser_units.add_unit(u, Duration::from_secs(3600));
+        }
+        for u in ["m", "min", "mins", "minute", "minutes"] {
+            parser_units.add_unit(u, Duration::from_secs(60));
+        }
+        for u in ["s", "sec", "secs", "second", "seconds"] {
+            parser_units.add_unit(u, Duration::from_secs(1));
+        }
+        for u in ["ms", "msec", "msecs", "millisecond", "milliseconds"] {
+            parser_units.add_unit(u, Duration::from_millis(1));
+        }
+
+        parser_units
+    }
+}
+
 /// Options to customize the behavior of a [`Parser`].
 ///
 /// This struct allows for more control over how duration strings are
@@ -139,6 +184,7 @@ impl<'a> Scanner<'a> {
 #[derive(Default)]
 pub struct ParserOptions {
     pub ignore_case: bool,
+    pub units: ParserUnits,
 }
 
 /// A configurable parser for duration strings.
@@ -200,22 +246,29 @@ impl Parser {
     }
 
     fn get_unit_duration(&self, unit: &str) -> Result<Duration, Error> {
-        let unit = if self.options.ignore_case {
-            Cow::Owned(unit.to_lowercase())
-        } else {
-            Cow::Borrowed(unit)
-        };
-
-        match unit.as_ref() {
-            "h" | "hr" | "hrs" | "hour" | "hours" => Ok(Duration::from_secs(3600)),
-            "m" | "min" | "mins" | "minute" | "minutes" => Ok(Duration::from_secs(60)),
-            "s" | "sec" | "secs" | "second" | "seconds" => Ok(Duration::from_secs(1)),
-            "ms" | "msec" | "msecs" | "millisecond" | "milliseconds" => {
-                Ok(Duration::from_millis(1))
-            }
-            _ => Err(Error::UnexpectedUnit(unit.into_owned())),
+        match self.options.units.get_duration(unit) {
+            Some(d) => Ok(*d),
+            None => Err(Error::UnexpectedUnit(unit.to_owned())),
         }
     }
+
+    // fn get_unit_duration(&self, unit: &str) -> Result<Duration, Error> {
+    //     let unit = if self.options.ignore_case {
+    //         Cow::Owned(unit.to_lowercase())
+    //     } else {
+    //         Cow::Borrowed(unit)
+    //     };
+    //
+    //     match unit.as_ref() {
+    //         "h" | "hr" | "hrs" | "hour" | "hours" => Ok(Duration::from_secs(3600)),
+    //         "m" | "min" | "mins" | "minute" | "minutes" => Ok(Duration::from_secs(60)),
+    //         "s" | "sec" | "secs" | "second" | "seconds" => Ok(Duration::from_secs(1)),
+    //         "ms" | "msec" | "msecs" | "millisecond" | "milliseconds" => {
+    //             Ok(Duration::from_millis(1))
+    //         }
+    //         _ => Err(Error::UnexpectedUnit(unit.into_owned())),
+    //     }
+    // }
 }
 
 /// Parses a duration string into a `std::time::Duration`.

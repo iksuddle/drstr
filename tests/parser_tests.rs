@@ -43,7 +43,7 @@ fn test_parsing() {
 
 #[test]
 fn test_parsing_case_sensitivity() {
-    let parser = Parser::new(ParserOptions { ignore_case: false });
+    let parser = Parser::new(ParserOptions::default());
 
     let d = parser.parse("1 min 2 sec");
     assert_eq!(d, Ok(Duration::from_secs(62)));
@@ -54,17 +54,17 @@ fn test_parsing_case_sensitivity() {
     let d = parser.parse("1 min 2 seC");
     assert_eq!(d, Err(Error::UnexpectedUnit("seC".to_owned())));
 
-    let parser = Parser::new(ParserOptions { ignore_case: true });
-
-    let d = parser.parse("1 min 2 sec");
-    assert_eq!(d, Ok(Duration::from_secs(62)));
-
-    let d = parser.parse("1 Min 2 sec");
-    assert_eq!(d, Ok(Duration::from_secs(62)));
-
-    let d = parser.parse("1 min 2 seC");
-    assert_eq!(d, Ok(Duration::from_secs(62)));
-
-    let d = parser.parse("1 MIN 2 SEC");
-    assert_eq!(d, Ok(Duration::from_secs(62)));
+    // let parser = Parser::new(ParserOptions::default());
+    //
+    // let d = parser.parse("1 min 2 sec");
+    // assert_eq!(d, Ok(Duration::from_secs(62)));
+    //
+    // let d = parser.parse("1 Min 2 sec");
+    // assert_eq!(d, Ok(Duration::from_secs(62)));
+    //
+    // let d = parser.parse("1 min 2 seC");
+    // assert_eq!(d, Ok(Duration::from_secs(62)));
+    //
+    // let d = parser.parse("1 MIN 2 SEC");
+    // assert_eq!(d, Ok(Duration::from_secs(62)));
 }

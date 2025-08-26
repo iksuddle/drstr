@@ -51,5 +51,4 @@ assert_eq!(dur, Ok(Duration::from_secs(62)));
 
 ## Future Enhancements
 
--   Floating point support
 -   User-defined custom units
