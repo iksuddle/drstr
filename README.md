@@ -11,7 +11,7 @@ Add `durstr` to `Cargo.toml`:
 
 ```toml
 [dependencies]
-durstr = "0.3.0"
+durstr = "0.4.0"
 ```
 
 This library provides a `parse` function for quick and easy parsing, and a `Parser` struct for more control over parsing behavior.
