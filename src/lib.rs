@@ -36,7 +36,9 @@ let dur = parser.parse("1 MINUTE, 2 SECONDS");
 assert_eq!(dur, Ok(Duration::from_secs(62)));
 ```
 
-## Default Units
+## Units
+
+By default, the following units are provided:
 
 | Unit        | Aliases                            |
 |-------------|------------------------------------|
@@ -44,6 +46,24 @@ assert_eq!(dur, Ok(Duration::from_secs(62)));
 | Second      | `s`, `sec(s)`, `second(s)`         |
 | Minute      | `m`, `min(s)`, `minute(s)`         |
 | Hour        | `h`, `hr(s)`, `hour(s)`            |
+
+You can define your own units, and their values, using the `ParserUnits` struct:
+
+```rust
+use durstr::{Parser, ParserOptions, ParserUnits};
+use std::time::Duration;
+
+let mut units = ParserUnits::default();
+units.add_unit("days", Duration::from_secs(3600) * 24);
+
+let parser = Parser::new(ParserOptions {
+    units,
+    ..Default::default()
+});
+
+let d = parser.parse("4 days");
+assert_eq!(d, Ok(Duration::from_secs(3600) * 24 * 4));
+```
 */
 
 use std::{borrow::Cow, collections::HashMap, iter::Peekable, str::CharIndices, time::Duration};

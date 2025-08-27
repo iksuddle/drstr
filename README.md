@@ -35,12 +35,14 @@ For more control, you can use the `Parser` struct directly. For example, to pars
 use durstr::{Parser, ParserOptions};
 use std::time::Duration;
 
-let parser = Parser::new(ParserOptions { ignore_case: true });
+let parser = Parser::new(ParserOptions { ignore_case: true, ..Default::default() });
 let dur = parser.parse("1 MINUTE, 2 SECONDS");
 assert_eq!(dur, Ok(Duration::from_secs(62)));
 ```
 
-## Supported Units
+## Units
+
+By default, the following units are provided:
 
 | Unit        | Aliases                            |
 |-------------|------------------------------------|
@@ -49,6 +51,19 @@ assert_eq!(dur, Ok(Duration::from_secs(62)));
 | Minute      | `m`, `min(s)`, `minute(s)`         |
 | Hour        | `h`, `hr(s)`, `hour(s)`            |
 
-## Future Enhancements
+You can define your own units, and their values, using the `ParserUnits` struct:
+```rust
+use durstr::{Parser, ParserOptions, ParserUnits};
+use std::time::Duration;
 
--   User-defined custom units
+let mut units = ParserUnits::default();
+units.add_unit("days", Duration::from_secs(3600) * 24);
+
+let parser = Parser::new(ParserOptions {
+    units,
+    ..Default::default()
+});
+
+let d = parser.parse("4 days");
+assert_eq!(d, Ok(Duration::from_secs(3600) * 24 * 4));
+```
