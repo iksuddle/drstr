@@ -155,6 +155,23 @@ impl<'a> Scanner<'a> {
 }
 
 /// Used to customize the parser's units and their values.
+///
+/// ## Example
+/// ```rust
+/// use durstr::{Parser, ParserOptions, ParserUnits};
+/// use std::time::Duration;
+/// 
+/// let mut units = ParserUnits::default();
+/// units.add_unit("days", Duration::from_secs(3600) * 24);
+/// 
+/// let parser = Parser::new(ParserOptions {
+///     units,
+///     ..Default::default()
+/// });
+/// 
+/// let d = parser.parse("4 days");
+/// assert_eq!(d, Ok(Duration::from_secs(3600) * 24 * 4));
+/// ```
 pub struct ParserUnits {
     values: HashMap<&'static str, Duration>,
 }
